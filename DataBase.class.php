@@ -3,6 +3,7 @@
 * 功能：数据库类（mysqli版）
 * 作者：杨
 * 时间：2017/1/29
+* 修改：2017/3/16:增加status变量作为上一个SQL语句的执行状态
 * 注：看了一下mysqli和mysql，显然mysqli高级一点，mysqli有面向对象和面向过程两种写法
 *     因为如果用面向对象，在类内部的函数里面要么一直用$this->mysqli,要么在前面赋值一
 *     次，有点麻烦，所以就用函数比较好。
@@ -13,6 +14,7 @@ class DataBase {
 
      public  $debug;                        //调试开启
      public  $results;                      //数据库查询结果集（数组）
+     public  $status = false;               //上一个SQL语句执行状况
      private $db_host;                      //数据库主机
      private $db_user;                      //数据库登陆名
      private $db_pwd;                       //数据库登陆密码
@@ -72,9 +74,13 @@ class DataBase {
              echo "SQL语句执行时出错: " . mysqli_error($this->mysqli) . "<br/>";
              echo "错误代码: " . mysqli_errno($this->mysqli) . "<br/>";
              echo "SQL语句: " . $sql . "<br/>";
+             $this->status = false;
              exit();
          }else if($this->debug){
+            $this->status = true;
             echo "SQL语句执行成功：".$sql."<br/>";
+         }else{
+            $this->status = true;
          }
          if ($result = mysqli_store_result($this->mysqli)) {
             while($row = mysqli_fetch_array($result)){
