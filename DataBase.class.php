@@ -4,6 +4,8 @@
 * 作者：杨
 * 时间：2017/1/29
 * 修改：2017/3/16:增加status变量作为上一个SQL语句的执行状态
+*       2017/3/18:修改debug报错的输出条件，去掉status增加code为上一句SQL语句执行返回的code，0为执行成功;
+*       2017/3/19:修改exit();
 * 注：看了一下mysqli和mysql，显然mysqli高级一点，mysqli有面向对象和面向过程两种写法
 *     因为如果用面向对象，在类内部的函数里面要么一直用$this->mysqli,要么在前面赋值一
 *     次，有点麻烦，所以就用函数比较好。
@@ -14,7 +16,8 @@ class DataBase {
 
      public  $debug;                        //调试开启
      public  $results;                      //数据库查询结果集（数组）
-     public  $status = false;               //上一个SQL语句执行状况
+     public  $code;                         //上一个SQL语句执行返回的code
+     public  $debugContent;                 //报错内容
      private $db_host;                      //数据库主机
      private $db_user;                      //数据库登陆名
      private $db_pwd;                       //数据库登陆密码
@@ -40,18 +43,22 @@ class DataBase {
          $mysqli = new mysqli($this->db_host, $this->db_user, $this->db_pwd, $this->db_name);
          //连接失败时的返回
          if ($mysqli->connect_errno) {
-            echo "错误原因：: Unable to connect to MySQL." . "<br/>";
-            echo "错误代码: " . $mysqli->connect_errno . "<br/>";   //这里用的是面向过程的函数
-            echo "错误解释: " . $mysqli->connect_error . "<br/>";   //这里用的是面向过程的函数
-            exit;   
+            $debugContent  = "错误原因：: Unable to connect to MySQL." . "<br/>";
+            $debugContent .= "错误代码: " . $mysqli->connect_errno . "<br/>";   //这里用的是面向过程的函数
+            $debugContent .= "错误解释: " . $mysqli->connect_error . "<br/>";   //这里用的是面向过程的函数
+            if ($this->debug) {
+                echo $debugContent;
+            }
          }else if($this->debug){
             echo "连接数据库".$this->db_name."成功（初始连接）。<br/>";
          }
          //设置编码为utf8
          if (!$mysqli->set_charset("utf8")) {
-            echo "设置编码格式时发送错误: " . $mysqli->error . "<br/>";
-            echo "错误代码: " . $mysqli->errno . "<br/>";
-            exit();
+            $debugContent  = "设置编码格式时发送错误: " . $mysqli->error . "<br/>";
+            $debugContent .= "错误代码: " . $mysqli->errno . "<br/>";
+            if ($this->debug) {
+                echo $debugContent;
+            }
          }
          $this->mysqli = $mysqli;
      }
@@ -60,9 +67,11 @@ class DataBase {
      public function selectDb($dbname) {
          $this->db_name = $dbname;
          if (mysqli_select_db($this->mysqli, $dbname)) {
-             echo "连接数据库时发生错误: " . mysqli_error($this->mysqli) . "<br/>";
-             echo "错误代码: " . mysqli_errno($this->mysqli) . "<br/>";
-             exit();
+             $debugContent  = "连接数据库时发生错误: " . mysqli_error($this->mysqli) . "<br/>";
+             $debugContent .= "错误代码: " . mysqli_errno($this->mysqli) . "<br/>";
+             if ($this->debug) {
+                echo $debugContent;
+             }
          }else if($this->debug){
             echo "连接数据库".$dbname."成功（后继连接）。<br/>";
          }
@@ -71,17 +80,16 @@ class DataBase {
      /*执行SQL语句*/
      public function query($sql) {
          if (!mysqli_real_query($this->mysqli, $sql)) {
-             echo "SQL语句执行时出错: " . mysqli_error($this->mysqli) . "<br/>";
-             echo "错误代码: " . mysqli_errno($this->mysqli) . "<br/>";
-             echo "SQL语句: " . $sql . "<br/>";
-             $this->status = false;
-             exit();
+             $debugContent  = "SQL语句执行时出错: " . mysqli_error($this->mysqli) . "<br/>";
+             $debugContent .= "错误代码: " . mysqli_errno($this->mysqli) . "<br/>";
+             $debugContent .= "SQL语句: " . $sql . "<br/>";
+             if ($this->debug) {
+                echo $debugContent;
+             }
          }else if($this->debug){
-            $this->status = true;
             echo "SQL语句执行成功：".$sql."<br/>";
-         }else{
-            $this->status = true;
          }
+         $this->code = mysqli_errno($this->mysqli);
          if ($result = mysqli_store_result($this->mysqli)) {
             while($row = mysqli_fetch_array($result)){
                 $this->results[] =  $row;
